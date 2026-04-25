@@ -43,6 +43,10 @@ def load_data():
                     table = pq.read_table(file_path)
                     df = table.to_pandas()
 
+                    # ✅ Add date column
+                    df['date'] = day
+
+                    # Decode event column
                     df['event'] = df['event'].apply(
                         lambda x: x.decode('utf-8') if isinstance(x, bytes) else x
                     )
@@ -58,46 +62,49 @@ def load_data():
 df = load_data()
 df['is_bot'] = df['user_id'].astype(str).str.isnumeric()
 
-# ----------- SIDEBAR -----------
+# ----------- SIDEBAR FILTERS -----------
 
 st.sidebar.header("Filters")
 
-selected_map = st.sidebar.selectbox("Select Map", df['map_id'].unique())
+# ✅ DATE FILTER
+selected_date = st.sidebar.selectbox(
+    "Select Date",
+    sorted(df['date'].unique()),
+    key="date_filter"
+)
 
-filtered_df = df[df['map_id'] == selected_map]
+filtered_df = df[df['date'] == selected_date]
 
+# ✅ MAP FILTER
+selected_map = st.sidebar.selectbox(
+    "Select Map",
+    filtered_df['map_id'].unique(),
+    key="map_filter"
+)
+
+filtered_df = filtered_df[filtered_df['map_id'] == selected_map]
+
+# ✅ MATCH FILTER
 matches = filtered_df['match_id'].unique()
-
-# Find a match with time variation
-good_match = None
-
-for m in matches:
-    temp = filtered_df[filtered_df['match_id'] == m]
-    if pd.to_datetime(temp['ts']).nunique() > 1:
-        good_match = m
-        break
 
 selected_match = st.sidebar.selectbox(
     "Select Match",
     matches,
-    index=list(matches).index(good_match) if good_match else 0
+    key="match_filter"
 )
-
-filtered_df = filtered_df[filtered_df['match_id'] == selected_match]
 
 filtered_df = filtered_df[filtered_df['match_id'] == selected_match]
 
 filtered_df = filtered_df.sort_values("ts")
 
+# ----------- HEATMAP TOGGLE -----------
 
 show_heatmap = st.sidebar.checkbox("Show Heatmap")
 
-filtered_df['time_sec'] = range(len(filtered_df))
-# ----------- TIME SLIDER -----------
+# ----------- TIME HANDLING -----------
 
 filtered_df = filtered_df.copy()
 filtered_df['ts'] = pd.to_datetime(filtered_df['ts'])
-
 
 start_time = filtered_df['ts'].min()
 filtered_df['time_sec'] = (filtered_df['ts'] - start_time).dt.total_seconds()
@@ -105,9 +112,8 @@ filtered_df['time_sec'] = (filtered_df['ts'] - start_time).dt.total_seconds()
 min_t = int(filtered_df['time_sec'].min())
 max_t = int(filtered_df['time_sec'].max())
 
-# ✅ FIX: handle single-point case BEFORE slider
 if max_t <= min_t:
-    st.warning("⚠️ Not enough events to show playback. Showing full data.")
+    st.warning("⚠️ Not enough time variation. Showing full match.")
 else:
     selected_time = st.slider(
         "Playback Progress",
@@ -118,7 +124,8 @@ else:
     )
 
     filtered_df = filtered_df[filtered_df['time_sec'] <= selected_time]
-st.caption("Tip: Select a match with time variation to enable timeline playback")
+
+st.caption("Tip: Select a match with time variation to enable playback")
 
 # ----------- CREATE FIG -----------
 
@@ -128,8 +135,7 @@ config = MAP_CONFIG[selected_map]
 # ----------- PLAYER PATHS -----------
 
 for player_id, group in filtered_df.groupby("user_id"):
-    xs = []
-    ys = []
+    xs, ys = [], []
 
     for row in group.itertuples():
         px, py = world_to_map(row.x, row.z, config)
@@ -157,10 +163,7 @@ event_colors = {
     "KilledByStorm": "purple"
 }
 
-event_x = []
-event_y = []
-event_c = []
-event_text = []
+event_x, event_y, event_c, event_text = [], [], [], []
 
 for row in filtered_df.itertuples():
     if row.event not in ["Position", "BotPosition"]:
@@ -187,10 +190,9 @@ map_path = f"maps/{selected_map}_Minimap.png"
 if selected_map == "Lockdown":
     map_path = "maps/Lockdown_Minimap.jpg"
 
-map_image = Image.open(map_path)
-map_image = map_image.resize((1024, 1024))
+map_image = Image.open(map_path).resize((1024, 1024))
 
-# ----------- OVERLAY MAP -----------
+# ----------- MAP OVERLAY -----------
 
 fig.update_layout(
     images=[dict(
@@ -209,12 +211,10 @@ fig.update_layout(
     height=800
 )
 
-
-# ----------- HEATMAP (STABLE VERSION) -----------
+# ----------- HEATMAP -----------
 
 if show_heatmap:
-    heat_x = []
-    heat_y = []
+    heat_x, heat_y = [], []
 
     for _, row in filtered_df.iterrows():
         px, py = world_to_map(row['x'], row['z'], config)
@@ -244,13 +244,13 @@ st.markdown("""
 """)
 
 if show_heatmap:
-    st.caption("Heatmap shows kill density (combat hotspots)")
+    st.caption("Heatmap shows activity density (combat hotspots)")
 
 # ----------- SHOW PLOT -----------
 
 st.plotly_chart(fig, use_container_width=True)
 
-# ----------- DEBUG INFO -----------
+# ----------- DEBUG -----------
 
 st.write("### Data Loaded Successfully ✅")
 st.write(df.head())
