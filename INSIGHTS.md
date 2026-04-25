@@ -168,5 +168,3 @@ Maximizes map usage and improves player exploration behavior.
 
 \---
 
-
-

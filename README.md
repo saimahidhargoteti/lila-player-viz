@@ -88,7 +88,7 @@ Deployment
 
 
 
-Live App: \*\*\[PASTE YOUR STREAMLIT URL HERE]\*\*
+Live App: https://lila-player-viz-n3vzyrunj2iaoyxnwqwuyu.streamlit.app/
 
 
 
@@ -131,6 +131,4 @@ lila-player-viz/
 ├── data/
 
 ├── maps/
-
-
 

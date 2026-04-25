@@ -78,7 +78,7 @@ Step 1: Normalize
 
 
 
-u = (x - origin\_x) / scale  
+u = (x - origin\_x) / scale
 
 v = (z - origin\_z) / scale
 
@@ -88,7 +88,7 @@ Step 2: Convert to pixels
 
 
 
-pixel\_x = u \* 1024  
+pixel\_x = u \* 1024
 
 pixel\_y = (1 - v) \* 1024
 
@@ -125,6 +125,14 @@ Timeline Handling
 \* Relative time (time\_sec) is calculated from match start
 
 \* Playback slider filters events up to selected time
+
+
+
+Timeline Limitation
+
+
+
+The dataset contains timestamps with minimal or no variation for certain matches, which restricts true playback functionality.
 
 
 
@@ -186,6 +194,4 @@ System Design Summary
 \* Real-time visualization via Streamlit
 
 \* Designed for exploration and insight generation
-
-
 
