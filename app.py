@@ -152,7 +152,7 @@ event_colors = {
     "Kill": "red",
     "Killed": "black",
     "BotKill": "orange",
-    "BotKilled": "yellow",
+    "BotKilled": "gray",
     "Loot": "green",
     "KilledByStorm": "purple"
 }
